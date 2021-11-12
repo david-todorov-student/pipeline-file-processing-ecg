@@ -1,0 +1,7 @@
+D:\Coding projects\Visual Studio Projects\FunctionPipelinePrototype\bin\Debug\FunctionPipelinePrototype.exe.config
+D:\Coding projects\Visual Studio Projects\FunctionPipelinePrototype\bin\Debug\FunctionPipelinePrototype.exe
+D:\Coding projects\Visual Studio Projects\FunctionPipelinePrototype\bin\Debug\FunctionPipelinePrototype.pdb
+D:\Coding projects\Visual Studio Projects\FunctionPipelinePrototype\obj\Debug\FunctionPipelinePrototype.csprojAssemblyReference.cache
+D:\Coding projects\Visual Studio Projects\FunctionPipelinePrototype\obj\Debug\FunctionPipelinePrototype.csproj.CoreCompileInputs.cache
+D:\Coding projects\Visual Studio Projects\FunctionPipelinePrototype\obj\Debug\FunctionPipelinePrototype.exe
+D:\Coding projects\Visual Studio Projects\FunctionPipelinePrototype\obj\Debug\FunctionPipelinePrototype.pdb

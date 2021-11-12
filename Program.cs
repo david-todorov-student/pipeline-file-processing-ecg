@@ -10,10 +10,10 @@ namespace FunctionPipelinePrototype
     {
         static void Main(string[] args)
         {
-            var pathToFiles = "../../input_files";
+            var pathToFiles = @"..\..\input_files";
             var fileNames = PipeFunctions.getFileNames(pathToFiles);
             fileNames = PipeFunctions.sortFileNames(fileNames);
-
+            PipeFunctions.readAndFormatFiles(fileNames, pathToFiles, pathToFiles+@"\mergedFile.csv");
         }
     }
 }
