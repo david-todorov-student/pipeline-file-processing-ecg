@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -36,6 +37,8 @@ namespace FunctionPipelinePrototype
                     var lines = formatLines(unformattedLines);
                     OverwriteFile(lines, fileName);
                     AppendToFile(fileName, pathToDestFile);
+
+                    Console.WriteLine($"File {fileName} processed and appended to {pathToDestFile}.");
                 }
                 else
                 {
@@ -81,6 +84,43 @@ namespace FunctionPipelinePrototype
         {
             string[] lines = File.ReadLines(srcFile).ToArray();
             File.AppendAllLines(destFile, lines);
+        }
+
+        public static void SortFile(string fileToSort, string outputFileName)
+        {
+            Process process = new Process();
+            process.StartInfo.FileName = "cmd.exe";
+            process.StartInfo.CreateNoWindow = true;
+            process.StartInfo.RedirectStandardInput = true;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.RedirectStandardError = true;
+            process.StartInfo.UseShellExecute = false;
+            process.Start();
+            process.StandardInput.WriteLine("sort {0} /o {1}", fileToSort, outputFileName);
+            process.StandardInput.Flush();
+            process.StandardInput.Close();
+            process.WaitForExit();
+            Console.WriteLine(process.StandardOutput.ReadToEnd());
+            Console.WriteLine(process.StandardError.ReadToEnd());
+        }
+
+        static List<string> removeTimestamps(string srcFilePath)
+        {
+            var lines = File.ReadLines(srcFilePath).ToList();
+            var newLines = new List<String>();
+            lines.ForEach(line =>
+            {
+                var words = line.Split(',');
+                newLines.Add(words[1]);
+            });
+            return newLines;
+        }
+        public static string convertToECG(string srcFilePath)
+        {
+            var newLines = removeTimestamps(srcFilePath);
+            var resultFileName = srcFilePath.Replace("csv", "ecg");
+            File.WriteAllLines(resultFileName, newLines.ToArray());
+            return resultFileName;
         }
 
         static int calculateY(int x)
