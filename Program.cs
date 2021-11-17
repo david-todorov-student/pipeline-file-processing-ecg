@@ -11,16 +11,16 @@ namespace FunctionPipelinePrototype
         static void Main(string[] args)
         {
             var pathToFiles = @"..\..\input_files";
-            var fileNames = PipeFunctions.getFileNames(pathToFiles);
+            var fileNames = PipeFunctions.GetFileNames(pathToFiles);
             Console.WriteLine("File names read.");
 
-            fileNames = PipeFunctions.sortFileNames(fileNames);
+            fileNames = PipeFunctions.SortFileNames(fileNames);
             Console.WriteLine("File names sorted.");
             
             var pathToMergedFile = pathToFiles + @"\mergedFile.csv";
             
             Console.WriteLine("Beginning file formatting and merging");
-            PipeFunctions.readAndFormatFiles(fileNames.GetRange(0, 10), pathToFiles, pathToMergedFile);
+            PipeFunctions.ReadAndFormatFiles(fileNames, pathToFiles, pathToMergedFile);
 
             var pathToSortedFile = pathToFiles + @"\sortedFile.csv";
             var begin = DateTime.Now;
@@ -30,7 +30,10 @@ namespace FunctionPipelinePrototype
 
             Console.WriteLine($"Sorting file {pathToMergedFile} finished in {timeDiff} seconds. Result is in file {pathToSortedFile}");
 
-            PipeFunctions.convertToECG(pathToSortedFile);
+            Console.WriteLine("Filling in the blanks");
+            PipeFunctions.CheckAndFillBlanks(pathToSortedFile, pathToSortedFile);
+
+            PipeFunctions.ConvertToECG(pathToSortedFile);
             Console.WriteLine($"Converted file {pathToSortedFile} to ECG.");
 
             Console.ReadLine();

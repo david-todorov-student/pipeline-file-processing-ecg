@@ -10,7 +10,7 @@ namespace FunctionPipelinePrototype
 {
     public class PipeFunctions
     {
-        public static List<string> getFileNames(string pathToFiles)
+        public static List<string> GetFileNames(string pathToFiles)
         {
             if (Directory.Exists(pathToFiles))
             {
@@ -22,21 +22,21 @@ namespace FunctionPipelinePrototype
             }
         }
 
-        public static List<string> sortFileNames(IEnumerable<string> fileNames)
+        public static List<string> SortFileNames(IEnumerable<string> fileNames)
         {
             return fileNames.OrderBy(fileName => fileName).ToList();
         }
 
-        public static void readAndFormatFiles(IEnumerable<string> fileNames, string pathToSrcFiles, string pathToDestFile)
+        public static void ReadAndFormatFiles(IEnumerable<string> fileNames, string pathToSrcFiles, string pathToDestFile)
         {
             foreach (var fileName in fileNames)
             {
                 if (File.Exists(fileName))
                 {
                     List<string> unformattedLines = File.ReadLines(fileName).ToList();
-                    var lines = formatLines(unformattedLines);
-                    OverwriteFile(lines, fileName);
-                    AppendToFile(fileName, pathToDestFile);
+                    var formattedLines = FormatLines(unformattedLines);
+                    OverwriteFile(formattedLines, fileName);
+                    AppendToFile(formattedLines, pathToDestFile);
 
                     Console.WriteLine($"File {fileName} processed and appended to {pathToDestFile}.");
                 }
@@ -47,7 +47,7 @@ namespace FunctionPipelinePrototype
             }
         }
 
-        static string[] formatLines(List<string> unformattedLines)
+        static string[] FormatLines(List<string> unformattedLines)
         {
             var formattedLines = new List<string>();
             var sb = new StringBuilder();
@@ -63,7 +63,7 @@ namespace FunctionPipelinePrototype
                     }
                     else
                     {
-                        var y = calculateY(int.Parse(nums[i]));
+                        var y = CalculateY(int.Parse(nums[i]));
                         sb.Append(y);
                         formattedLines.Add(sb.ToString());
                         sb.Clear();
@@ -80,9 +80,8 @@ namespace FunctionPipelinePrototype
             File.WriteAllLines(pathToFile, lines);
         }
 
-        public static void AppendToFile(string srcFile, string destFile)
+        public static void AppendToFile(string[] lines, string destFile)
         {
-            string[] lines = File.ReadLines(srcFile).ToArray();
             File.AppendAllLines(destFile, lines);
         }
 
@@ -104,7 +103,87 @@ namespace FunctionPipelinePrototype
             Console.WriteLine(process.StandardError.ReadToEnd());
         }
 
-        static List<string> removeTimestamps(string srcFilePath)
+        static KeyValuePair<long, int> GetTimestampECGPair(string line)
+        {
+            var values = line.Split(',');
+            return new KeyValuePair<long, int>(long.Parse(values[0]), int.Parse(values[1]));
+        }
+
+        public static void CheckAndFillBlanks(string srcFilePath, string destFilePath)
+        {
+            var lines = File.ReadLines(srcFilePath);
+            using (var linesEnumerator = lines.GetEnumerator())
+            {
+                string currentLine = null;
+                string previousLine = null;
+
+                linesEnumerator.MoveNext();
+                previousLine = linesEnumerator.Current;
+
+                var linesToAppend = new List<string>();
+                linesToAppend.Add(previousLine);
+                while (linesEnumerator.MoveNext())
+                {
+                    currentLine = linesEnumerator.Current;
+
+                    linesToAppend = GetMissingTimestamps(previousLine, currentLine, linesToAppend);
+
+                    previousLine = currentLine;
+                    linesToAppend.Add(previousLine);
+                }
+
+                File.WriteAllLines(destFilePath, linesToAppend.ToArray());
+            }
+        }
+
+        static long CalculateDifference(string previousLine, string currentLine)
+        {
+
+            var previousTimeStamp = GetTimestampECGPair(previousLine).Key;
+            var currentTimeStamp = GetTimestampECGPair(currentLine).Key;
+
+            var diff = currentTimeStamp - previousTimeStamp;
+            return diff;
+        }
+
+        static int HowManyMissingTimestamps(long diff)
+        {
+            return (int) (diff / 8) - 1;
+        }
+
+        static bool AreThereMissingTimestamps(string previousLine, string currentLine)
+        {
+            var diff = CalculateDifference(previousLine, currentLine);
+            if (diff % 8 != 0)
+            {
+                throw new Exception("The difference between timestamps is not dividable by 8.");
+            }
+
+            var howManyMissing = HowManyMissingTimestamps(diff);
+            return (howManyMissing > 0);
+        }
+
+        static List<string> GetMissingTimestamps(string previousLine, string currentLine, List<string> lines)
+        {
+            if (AreThereMissingTimestamps(previousLine, currentLine))
+            {
+                Console.WriteLine("Missing timestamps found!");
+                var diff = CalculateDifference(previousLine, currentLine);
+                var howManyMissing = HowManyMissingTimestamps(diff);
+                var previousTimeStamp = GetTimestampECGPair(previousLine).Key;
+                var currentTimeStamp = GetTimestampECGPair(currentLine).Key;
+
+                for (long toAdd = previousTimeStamp + 8; toAdd < currentTimeStamp; toAdd+=8)
+                {
+                    lines.Add(toAdd+",-1");
+                }
+
+            }
+
+            return lines;
+        }
+
+        static List<string> RemoveTimestamps(string srcFilePath)
         {
             var lines = File.ReadLines(srcFilePath).ToList();
             var newLines = new List<String>();
@@ -115,15 +194,15 @@ namespace FunctionPipelinePrototype
             });
             return newLines;
         }
-        public static string convertToECG(string srcFilePath)
+        public static string ConvertToECG(string srcFilePath)
         {
-            var newLines = removeTimestamps(srcFilePath);
+            var newLines = RemoveTimestamps(srcFilePath);
             var resultFileName = srcFilePath.Replace("csv", "ecg");
             File.WriteAllLines(resultFileName, newLines.ToArray());
             return resultFileName;
         }
 
-        static int calculateY(int x)
+        static int CalculateY(int x)
         {
             var y = (x / 6) + 511;
             if (y > 1023)
