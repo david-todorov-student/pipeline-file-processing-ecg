@@ -27,7 +27,12 @@ namespace FunctionPipelinePrototype
             return fileNames.OrderBy(fileName => fileName).ToList();
         }
 
-        public static void ReadAndFormatFiles(IEnumerable<string> fileNames, string pathToSrcFiles, string pathToDestFile)
+        static string GetFormattedFileOutputName(string inputFileName)
+        {
+            return inputFileName.Replace("input", "output");
+        }
+
+        public static void ReadAndFormatFiles(IEnumerable<string> fileNames, string pathToMergedFile)
         {
             foreach (var fileName in fileNames)
             {
@@ -35,10 +40,11 @@ namespace FunctionPipelinePrototype
                 {
                     List<string> unformattedLines = File.ReadLines(fileName).ToList();
                     var formattedLines = FormatLines(unformattedLines);
-                    OverwriteFile(formattedLines, fileName);
-                    AppendToFile(formattedLines, pathToDestFile);
+                    // WriteToFile(formattedLines, fileName);
 
-                    Console.WriteLine($"File {fileName} processed and appended to {pathToDestFile}.");
+                    AppendToFile(formattedLines, pathToMergedFile);
+
+                    Console.WriteLine($"File {fileName} processed and appended to {pathToMergedFile}.");
                 }
                 else
                 {
@@ -69,18 +75,19 @@ namespace FunctionPipelinePrototype
                         sb.Clear();
                     }
                 }
+
                 sb.Clear();
             });
 
             return formattedLines.ToArray();
         }
 
-        static void OverwriteFile(string[] lines, string pathToFile)
+        static void WriteToFile(string[] lines, string pathToFile)
         {
             File.WriteAllLines(pathToFile, lines);
         }
 
-        public static void AppendToFile(string[] lines, string destFile)
+        static void AppendToFile(string[] lines, string destFile)
         {
             File.AppendAllLines(destFile, lines);
         }
@@ -122,23 +129,47 @@ namespace FunctionPipelinePrototype
 
                 var linesToAppend = new List<string>();
                 linesToAppend.Add(previousLine);
+
                 while (linesEnumerator.MoveNext())
                 {
                     currentLine = linesEnumerator.Current;
 
-                    linesToAppend = GetMissingTimestamps(previousLine, currentLine, linesToAppend);
+                    if (AreThereMissingTimestamps(previousLine, currentLine))
+                    {
+                        if (CalculateDifference(previousLine, currentLine) >= 30000)
+                        {
+                            var destFileName = GetFileName(linesToAppend[0], destFilePath);
+                            File.WriteAllLines(destFileName, linesToAppend.ToArray());
+                            ConvertToECG(destFileName);
+                            Console.WriteLine($"Converted file {destFileName} to ECG.");
+                            linesToAppend.Clear();
+                        }
+                        else
+                        {
+                            linesToAppend = GetMissingTimestamps(previousLine, currentLine, linesToAppend);
+                        }
+                    }
 
                     previousLine = currentLine;
                     linesToAppend.Add(previousLine);
                 }
 
-                File.WriteAllLines(destFilePath, linesToAppend.ToArray());
+                var finalDestFileName = GetFileName(linesToAppend[0], destFilePath);
+                File.WriteAllLines(GetFileName(linesToAppend[0], destFilePath), linesToAppend.ToArray());
+                ConvertToECG(finalDestFileName);
+                Console.WriteLine($"Converted file {finalDestFileName} to ECG.");
             }
+        }
+
+        static string GetFileName(string line, string destPath)
+        {
+            var timestamp = GetTimestampECGPair(line).Key;
+            var fileName = destPath + @"\ecg_" + timestamp + ".csv";
+            return fileName;
         }
 
         static long CalculateDifference(string previousLine, string currentLine)
         {
-
             var previousTimeStamp = GetTimestampECGPair(previousLine).Key;
             var currentTimeStamp = GetTimestampECGPair(currentLine).Key;
 
@@ -146,12 +177,7 @@ namespace FunctionPipelinePrototype
             return diff;
         }
 
-        static int HowManyMissingTimestamps(long diff)
-        {
-            return (int) (diff / 8) - 1;
-        }
-
-        static bool AreThereMissingTimestamps(string previousLine, string currentLine)
+        static int HowManyMissingTimestamps(string previousLine, string currentLine)
         {
             var diff = CalculateDifference(previousLine, currentLine);
             if (diff % 8 != 0)
@@ -159,25 +185,23 @@ namespace FunctionPipelinePrototype
                 throw new Exception("The difference between timestamps is not dividable by 8.");
             }
 
-            var howManyMissing = HowManyMissingTimestamps(diff);
+            return (int) (diff / 8) - 1;
+        }
+
+        static bool AreThereMissingTimestamps(string previousLine, string currentLine)
+        {
+            var howManyMissing = HowManyMissingTimestamps(previousLine, currentLine);
             return (howManyMissing > 0);
         }
 
         static List<string> GetMissingTimestamps(string previousLine, string currentLine, List<string> lines)
         {
-            if (AreThereMissingTimestamps(previousLine, currentLine))
+            var previousTimeStamp = GetTimestampECGPair(previousLine).Key;
+            var currentTimeStamp = GetTimestampECGPair(currentLine).Key;
+
+            for (long toAdd = previousTimeStamp + 8; toAdd < currentTimeStamp; toAdd += 8)
             {
-                Console.WriteLine("Missing timestamps found!");
-                var diff = CalculateDifference(previousLine, currentLine);
-                var howManyMissing = HowManyMissingTimestamps(diff);
-                var previousTimeStamp = GetTimestampECGPair(previousLine).Key;
-                var currentTimeStamp = GetTimestampECGPair(currentLine).Key;
-
-                for (long toAdd = previousTimeStamp + 8; toAdd < currentTimeStamp; toAdd+=8)
-                {
-                    lines.Add(toAdd+",-1");
-                }
-
+                lines.Add(toAdd + ",-1");
             }
 
             return lines;
@@ -194,6 +218,7 @@ namespace FunctionPipelinePrototype
             });
             return newLines;
         }
+
         public static string ConvertToECG(string srcFilePath)
         {
             var newLines = RemoveTimestamps(srcFilePath);

@@ -10,19 +10,20 @@ namespace FunctionPipelinePrototype
     {
         static void Main(string[] args)
         {
-            var pathToFiles = @"..\..\input_files";
-            var fileNames = PipeFunctions.GetFileNames(pathToFiles);
+            var pathToInputFiles = @"..\..\input_files";
+            var pathToOutputFiles = @"..\..\output_files";
+            var fileNames = PipeFunctions.GetFileNames(pathToInputFiles);
             Console.WriteLine("File names read.");
 
             fileNames = PipeFunctions.SortFileNames(fileNames);
             Console.WriteLine("File names sorted.");
             
-            var pathToMergedFile = pathToFiles + @"\mergedFile.csv";
+            var pathToMergedFile = pathToOutputFiles + @"\mergedFile.csv";
             
             Console.WriteLine("Beginning file formatting and merging");
-            PipeFunctions.ReadAndFormatFiles(fileNames, pathToFiles, pathToMergedFile);
+            PipeFunctions.ReadAndFormatFiles(fileNames, pathToMergedFile);
 
-            var pathToSortedFile = pathToFiles + @"\sortedFile.csv";
+            var pathToSortedFile = pathToOutputFiles + @"\sortedFile.csv";
             var begin = DateTime.Now;
             PipeFunctions.SortFile(pathToMergedFile, pathToSortedFile);
             var end = DateTime.Now;
@@ -31,11 +32,9 @@ namespace FunctionPipelinePrototype
             Console.WriteLine($"Sorting file {pathToMergedFile} finished in {timeDiff} seconds. Result is in file {pathToSortedFile}");
 
             Console.WriteLine("Filling in the blanks");
-            PipeFunctions.CheckAndFillBlanks(pathToSortedFile, pathToSortedFile);
-
-            PipeFunctions.ConvertToECG(pathToSortedFile);
-            Console.WriteLine($"Converted file {pathToSortedFile} to ECG.");
-
+            PipeFunctions.CheckAndFillBlanks(pathToSortedFile, pathToOutputFiles);
+            
+            Console.WriteLine("\nFINISHED!");
             Console.ReadLine();
         }
     }
